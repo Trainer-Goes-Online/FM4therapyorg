@@ -71,14 +71,13 @@ export default function LandingClient() {
       slides[sliderIdx].classList.add('is-active');
     }, 3500) : null;
 
-    // 5a. Hero VSL — inline workshop preview (replaces the poster with a Vimeo iframe)
-    const HERO_VIDEO_URL = 'https://player.vimeo.com/video/1109262583?h=9b74413547';
+    // 5a. Hero VSL — inline workshop preview (replaces the poster with the CDN MP4)
+    const HERO_VIDEO_URL = 'https://tgox-production-bucket.nyc3.cdn.digitaloceanspaces.com/client_funnel_videos/Sourobh%20Ji/vsl_saurabhji_(1).mp4%20(1080p).mp4';
     const vslContainer = document.getElementById('vslContainer');
     let vslOff: (() => void) | null = null;
     if (vslContainer) {
       const playHero = () => {
-        const sep = HERO_VIDEO_URL.includes('?') ? '&' : '?';
-        vslContainer.innerHTML = `<iframe src="${HERO_VIDEO_URL}${sep}autoplay=1&playsinline=1" allow="autoplay; fullscreen; picture-in-picture; clipboard-write; encrypted-media" allowfullscreen title="Workshop preview"></iframe>`;
+        vslContainer.innerHTML = `<video src="${HERO_VIDEO_URL}" controls autoplay playsinline></video>`;
       };
       const onKey = (e: Event) => {
         const k = (e as KeyboardEvent).key;
@@ -98,8 +97,10 @@ export default function LandingClient() {
     const close  = document.getElementById('videoModalClose');
     const openModal = (url: string) => {
       if (!modal || !player) return;
-      const sep = url.includes('?') ? '&' : '?';
-      player.innerHTML = `<iframe src="${url}${sep}autoplay=1&playsinline=1" allow="autoplay; fullscreen; picture-in-picture; clipboard-write; encrypted-media" allowfullscreen></iframe>`;
+      const isVideoFile = /\.mp4/i.test(url);
+      player.innerHTML = isVideoFile
+        ? `<video src="${url}" controls autoplay playsinline></video>`
+        : `<iframe src="${url}${url.includes('?') ? '&' : '?'}autoplay=1&playsinline=1" allow="autoplay; fullscreen; picture-in-picture; clipboard-write; encrypted-media" allowfullscreen></iframe>`;
       modal.classList.add('is-open');
       document.body.style.overflow = 'hidden';
     };
@@ -139,10 +140,11 @@ export default function LandingClient() {
     window.addEventListener('scroll', tlUpdate, { passive: true });
     window.addEventListener('resize', tlUpdate, { passive: true });
 
-    // 7. Vimeo unmute toggle for the instructor section
-    const vimeoIframe = document.getElementById('instructorVimeoIframe') as HTMLIFrameElement | null;
+    // 7. Unmute toggle for the instructor section (CDN <video>)
+    const instructorVideo = document.getElementById('instructorVideo') as HTMLVideoElement | null;
     const soundBtn = document.getElementById('videoSoundBtn');
     let muted = true;
+    if (instructorVideo) { instructorVideo.muted = true; instructorVideo.play?.().catch(() => { /* autoplay blocked */ }); }
     const paintSound = () => {
       if (!soundBtn) return;
       soundBtn.setAttribute('aria-pressed', String(!muted));
@@ -153,15 +155,11 @@ export default function LandingClient() {
       if (lab)  lab.textContent  = muted ? 'Unmute' : 'Mute';
     };
     const soundClick = () => {
-      if (!vimeoIframe) return;
+      if (!instructorVideo) return;
       muted = !muted;
       paintSound();
-      try {
-        vimeoIframe.contentWindow?.postMessage(
-          JSON.stringify({ method: 'setMuted', value: muted }),
-          '*'
-        );
-      } catch { /* noop */ }
+      instructorVideo.muted = muted;
+      if (!muted) instructorVideo.play?.().catch(() => { /* noop */ });
     };
     if (soundBtn) soundBtn.addEventListener('click', soundClick);
 

@@ -4,14 +4,15 @@ import CheckoutLink from '@/components/CheckoutLink';
 import SeatCounter from '@/components/SeatCounter';
 import { brand, pricing, schedule } from '@/lib/config';
 
+const CDN = 'https://tgox-production-bucket.nyc3.cdn.digitaloceanspaces.com/client_funnel_videos/Sourobh%20Ji';
 const VIDEO_TESTIMONIALS = [
-  { thumb: '/Images%20Sourabh/video1.jpg', url: 'https://player.vimeo.com/video/1037337143?h=cd71981f29' },
-  { thumb: '/Images%20Sourabh/video2.png', url: 'https://player.vimeo.com/video/1037391319?h=90c39e7abf' },
-  { thumb: '/Images%20Sourabh/video3.png', url: 'https://player.vimeo.com/video/1036989531?h=bdcfbbf55e' },
-  { thumb: '/Images%20Sourabh/video4.png', url: 'https://player.vimeo.com/video/1036990802?h=b559cf8df7' },
-  { thumb: '/Images%20Sourabh/video5.png', url: 'https://player.vimeo.com/video/1036989452?h=cfca58d257' },
-  { thumb: '/Images%20Sourabh/video6.jpg', url: 'https://player.vimeo.com/video/1037337766?h=23bc18ac1c' },
-  { thumb: '/Images%20Sourabh/video7.jpg', url: 'https://player.vimeo.com/video/1036989280?h=61dd3cfc96' },
+  { thumb: '/Images%20Sourabh/video1.jpg', url: `${CDN}/mahesh_v1%20(1080p).mp4` },                       // Mahesh — Neck pain
+  { thumb: '/Images%20Sourabh/video2.png', url: `${CDN}/test_2_v1%20(1080p).mp4` },                       // before/after (no name)
+  { thumb: '/Images%20Sourabh/video3.png', url: `${CDN}/ankit_nirav_v1%20(540p).mp4` },                   // Ankit Nirav — Neck pain
+  { thumb: '/Images%20Sourabh/video4.png', url: `${CDN}/aarti_bhuptani_with_caption_v1%20(1080p).mp4` },  // Aarti Bhuptani — Knee pain
+  { thumb: '/Images%20Sourabh/video5.png', url: `${CDN}/kamal_gupta_v1%20(540p).mp4` },                   // Kamal Gupta — Back pain
+  { thumb: '/Images%20Sourabh/video6.jpg', url: `${CDN}/pallavi_v1%20(1080p).mp4` },                      // Pallavi — Knee pain
+  { thumb: '/Images%20Sourabh/video7.jpg', url: `${CDN}/rajiv_sawant_v1%20(1080p).mp4` },                 // Rajiv Sawant — Knee pain
 ];
 const testRow1 = VIDEO_TESTIMONIALS.slice(0, 4);
 const testRow2 = VIDEO_TESTIMONIALS.slice(4);
@@ -284,11 +285,14 @@ export default function LandingPage() {
             </div>
 
             <div className="instructor-vimeo">
-              <iframe
-                id="instructorVimeoIframe"
-                src="https://player.vimeo.com/video/1072068196?h=4c6578adfe&autoplay=1&muted=1&loop=1&background=1&autopause=0"
-                allow="autoplay; fullscreen; picture-in-picture; clipboard-write; encrypted-media"
-                allowFullScreen
+              <video
+                id="instructorVideo"
+                src="https://tgox-production-bucket.nyc3.cdn.digitaloceanspaces.com/client_funnel_videos/Sourobh%20Ji/s_trim_file.mp4_v2%20(1080p).mp4"
+                autoPlay
+                muted
+                loop
+                playsInline
+                preload="auto"
                 title="FM4 Therapy — Sourobh Kulkorni"
               />
               <button className="video-block__sound" type="button" id="videoSoundBtn" aria-pressed="false">
