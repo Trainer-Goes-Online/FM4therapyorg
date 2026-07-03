@@ -463,17 +463,36 @@ export default function CheckoutForm() {
     }
 
     try {
+      const selected = COUNTRIES.find(c => c.code === countryCode) ?? COUNTRIES[0];
+      // Send the full identity + attribution context up-front so the server
+      // can pack it into Razorpay order.notes. The webhook (which fires
+      // regardless of whether the user returns to /thank-you) reads notes
+      // back to fire Pabbly + Meta CAPI without needing the browser again.
       const orderRes = await fetch('/api/razorpay/create-order', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ amount: pricing.client.paise, currency: pricing.client.currency }),
+        body: JSON.stringify({
+          amount: pricing.client.paise,
+          currency: pricing.client.currency,
+          customer: {
+            firstName:    fields.firstName.trim(),
+            lastName:     fields.lastName.trim(),
+            email:        fields.email.trim(),
+            city:         fields.city.trim(),
+            phone:        fields.phone.trim(),
+            countryCode,
+            dialCode:     selected.dial,
+            customerType: fields.customerType,
+          },
+          utm: restoreUtm(),
+          fbclid: restoreLandingParams().fbclid ?? '',
+        }),
       });
       if (!orderRes.ok) {
         const err = await orderRes.json().catch(() => ({}));
         throw new Error(err.error ?? 'Could not initiate payment.');
       }
       const { orderId, keyId, amount } = await orderRes.json();
-      const selected = COUNTRIES.find(c => c.code === countryCode) ?? COUNTRIES[0];
 
       if (typeof window.Razorpay === 'undefined') {
         throw new Error('Payment system unavailable. Please refresh and try again.');
@@ -506,10 +525,12 @@ export default function CheckoutForm() {
 
   async function handlePaymentSuccess(response: RazorpayResponse, dialCode: string) {
     try {
-      const utm = restoreUtm();
-
-      // Refresh MAM with the latest form values so the cookie carries the
-      // final identity into /thank-you and every subsequent PageView.
+      // Refresh MAM with the latest form values so the fm4_mam cookie
+      // carries the final identity into /thank-you and every subsequent
+      // PageView. This is browser-only; the server-side conversion signal
+      // (Pabbly + Meta CAPI Purchase + sales) is fired independently by
+      // /api/razorpay/webhook when Razorpay pings us server-to-server —
+      // so UPI-app users who never return to this tab still get tracked.
       await setMetaAdvancedMatching({
         email:     fields.email,
         phone:     `${dialCode}${fields.phone}`,
@@ -519,47 +540,17 @@ export default function CheckoutForm() {
         country:   countryCode,
       });
 
-      const eventSourceUrl =
-        typeof window !== 'undefined' ? window.location.href : '';
-      // Forward the Facebook click ID (captured among the landing params) so
-      // the server can pass it to the downstream CRM. fbc is derived from this
-      // by the pixel, but fbclid is a useful backup for fbc reconstruction.
-      const fbclid = restoreLandingParams().fbclid ?? '';
-
-      const verifyRes = await fetch('/api/razorpay/verify-payment', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          orderId: response.razorpay_order_id,
-          paymentId: response.razorpay_payment_id,
-          signature: response.razorpay_signature,
-          customer: {
-            firstName:    fields.firstName.trim(),
-            lastName:     fields.lastName.trim(),
-            email:        fields.email.trim(),
-            city:         fields.city.trim(),
-            phone:        fields.phone.trim(),
-            countryCode,
-            dialCode,
-            customerType: fields.customerType,
-          },
-          utm,
-          eventSourceUrl,
-          fbclid,
-        }),
-      });
-      const result = await verifyRes.json();
-      if (!result.success) throw new Error(result.error ?? 'Payment verification failed.');
-
-      // Forward EVERY landing param to /thank-you — same rationale as the
-      // coupon path above.
+      // Forward every landing param to /thank-you so downstream tooling
+      // (Pabbly automations, analytics dashboards, partner pixels) keeps
+      // the full attribution context. brand.funnelSlug and `p` (paymentId)
+      // are added last so they override any same-named URL param.
       const params = new URLSearchParams(restoreLandingParams());
       params.set('funnel', brand.funnelSlug);
       params.set('p', response.razorpay_payment_id);
       router.push(`${brand.thankYouPath}?${params.toString()}`);
     } catch (err) {
       setLoading(false);
-      showToast(err instanceof Error ? err.message : 'Verification failed — please contact support.');
+      showToast(err instanceof Error ? err.message : 'Something went wrong — please contact support.');
     }
   }
 

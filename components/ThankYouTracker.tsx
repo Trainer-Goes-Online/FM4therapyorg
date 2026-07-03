@@ -14,8 +14,10 @@ import { reapplyMamFromCookie } from '@/lib/analytics';
 //      false (₹1 test mode), so both calls no-op naturally in that case.
 //
 // No browser-side Purchase event is ever fired — the conversion signal
-// comes exclusively from server CAPI (see /api/razorpay/verify-payment),
-// which ships Purchase + sales with EMQ 9.5+ via SHA-256 customer info.
+// comes exclusively from server CAPI (see /api/razorpay/webhook, fired
+// server-to-server by Razorpay), which ships Purchase + sales with
+// EMQ 9.5+ via SHA-256 customer info regardless of whether the user
+// returned to /thank-you.
 export default function ThankYouTracker() {
   useEffect(() => {
     reapplyMamFromCookie();
