@@ -6,7 +6,49 @@ import { isValidPhoneNumber } from 'libphonenumber-js';
 import { COUNTRIES, type Country } from '@/lib/countries';
 import { captureLandingParams, restoreLandingParams, restoreUtm, type UtmData } from '@/lib/utm';
 import { brand, pricing, schedule, submitButtonLabel, saveBadgeText } from '@/lib/config';
-import { setMetaAdvancedMatching } from '@/lib/analytics';
+import { setMetaAdvancedMatching, sha256Hex } from '@/lib/analytics';
+
+// localStorage key that holds the sha256 hash of the email for which we've
+// already fired an InitiateCheckout. When the same visitor retries with a
+// DIFFERENT email, the hash differs → we fire again (different real intent).
+const IC_FLAG_KEY = 'fm4_ic_fired';
+
+// Fire InitiateCheckout at pay-button click, once per unique email per
+// browser. Never blocks the user — errors are swallowed and logged.
+async function maybeFireInitiateCheckout(customer: {
+  firstName: string;
+  lastName: string;
+  email: string;
+  city: string;
+  phone: string;
+  countryCode: string;
+  dialCode: string;
+  customerType: string;
+}) {
+  if (typeof window === 'undefined') return;
+  try {
+    const emailNorm = customer.email.trim().toLowerCase();
+    if (!emailNorm) return;
+    const emailHash = await sha256Hex(emailNorm);
+    if (localStorage.getItem(IC_FLAG_KEY) === emailHash) return;
+
+    const res = await fetch('/api/meta/initiate-checkout', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        customer,
+        eventSourceUrl: window.location.href,
+      }),
+    });
+    if (res.ok) {
+      // Only stamp the flag if the server acknowledged. Failures leave the
+      // flag empty so the next attempt retries — better than silently dropping.
+      localStorage.setItem(IC_FLAG_KEY, emailHash);
+    }
+  } catch (err) {
+    console.warn('[InitiateCheckout] fire failed (non-blocking):', err);
+  }
+}
 
 // ── Types ───────────────────────────────────────────────────────────
 interface FormFields {
@@ -464,6 +506,22 @@ export default function CheckoutForm() {
 
     try {
       const selected = COUNTRIES.find(c => c.code === countryCode) ?? COUNTRIES[0];
+
+      // Fire the CAPI InitiateCheckout event once per unique email per
+      // browser (deduped by localStorage.fm4_ic_fired). Awaited so the
+      // event lands before the Razorpay modal steals focus, but errors
+      // are swallowed inside — never blocks payment.
+      await maybeFireInitiateCheckout({
+        firstName:    fields.firstName.trim(),
+        lastName:     fields.lastName.trim(),
+        email:        fields.email.trim(),
+        city:         fields.city.trim(),
+        phone:        fields.phone.trim(),
+        countryCode,
+        dialCode:     selected.dial,
+        customerType: fields.customerType,
+      });
+
       // Send the full identity + attribution context up-front so the server
       // can pack it into Razorpay order.notes. The webhook (which fires
       // regardless of whether the user returns to /thank-you) reads notes
