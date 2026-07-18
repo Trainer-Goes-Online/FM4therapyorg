@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, type AnchorHTMLAttributes, type ReactNode } from 'react';
+import { trackGa4EventOnce } from '@/lib/ga4';
 
 // Anchor that forwards every query param on the current landing URL to the
 // checkout page. Mounts client-side, reads window.location.search, and appends
@@ -62,7 +63,12 @@ export default function CheckoutLink({
   }, []);
 
   function handleClick(e: React.MouseEvent<HTMLAnchorElement>) {
+    // Fire both trackers on the same click. Their dedup surfaces are
+    // independent: fireAddToCartBeacon uses localStorage.fm4_atc_fired
+    // (server-side CAPI event), trackGa4EventOnce uses fm4_ga4_add_to_cart_fired.
+    // A Meta outage does not suppress GA4 and vice versa.
     fireAddToCartBeacon();
+    trackGa4EventOnce('add_to_cart');
     if (onClick) onClick(e);
   }
 

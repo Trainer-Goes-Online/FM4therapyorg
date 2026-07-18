@@ -7,6 +7,7 @@ import { COUNTRIES, type Country } from '@/lib/countries';
 import { captureLandingParams, restoreLandingParams, restoreUtm, type UtmData } from '@/lib/utm';
 import { brand, pricing, schedule, submitButtonLabel, saveBadgeText } from '@/lib/config';
 import { setMetaAdvancedMatching, sha256Hex } from '@/lib/analytics';
+import { trackGa4EventOnce } from '@/lib/ga4';
 
 // localStorage key that holds the sha256 hash of the email for which we've
 // already fired an InitiateCheckout. When the same visitor retries with a
@@ -452,6 +453,16 @@ export default function CheckoutForm() {
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+
+    // GA4 initiate_checkout — fire BEFORE validation, once per browser.
+    // Contract: "did the visitor attempt to pay?" — a half-filled form that
+    // bounces off validation still counts as a Pay-button intent. The
+    // trackGa4EventOnce helper's own localStorage flag (fm4_ga4_initiate_
+    // checkout_fired) makes this at-most-once per browser. Note: CAPI IC
+    // uses a different contract — see maybeFireInitiateCheckout below,
+    // which fires only after validation on the paid path.
+    trackGa4EventOnce('initiate_checkout');
+
     setTouched({ firstName: true, lastName: true, email: true, city: true, phone: true, customerType: true });
     const allErrors = validateFields(fields, countryCode);
     setErrors(allErrors);

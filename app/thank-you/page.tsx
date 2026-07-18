@@ -1,7 +1,8 @@
 import type { Metadata } from 'next';
 import Footer from '@/components/Footer';
 import ThankYouTracker from '@/components/ThankYouTracker';
-import { brand, schedule } from '@/lib/config';
+import WhatsAppLink from '@/components/WhatsAppLink';
+import { schedule } from '@/lib/config';
 
 export const metadata: Metadata = {
   title: 'Thank You · FM4 Therapy',
@@ -24,14 +25,9 @@ export default function ThankYouPage() {
               Join the exclusive WhatsApp community to receive all your workshop updates and reminders.
             </div>
 
-            <a
-              href={brand.whatsappUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="btn btn--whatsapp btn--lg btn--block"
-            >
+            <WhatsAppLink className="btn btn--whatsapp btn--lg btn--block">
               Click Here to Join Our Community Now
-            </a>
+            </WhatsAppLink>
 
             <p className="thanks__signoff">{schedule.thankYouSignoff} ✨</p>
           </div>
@@ -39,9 +35,9 @@ export default function ThankYouPage() {
       </section>
 
       <aside className="sticky-whatsapp" aria-label="Join WhatsApp community">
-        <a href={brand.whatsappUrl} target="_blank" rel="noopener noreferrer" className="btn btn--whatsapp">
+        <WhatsAppLink className="btn btn--whatsapp">
           💬 Join WhatsApp Community
-        </a>
+        </WhatsAppLink>
       </aside>
 
       <Footer />

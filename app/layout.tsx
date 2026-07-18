@@ -54,8 +54,14 @@ export default function RootLayout({
           strategy="lazyOnload"
         />
 
-        {/* GA4 — fires only when NEXT_PUBLIC_GA4_ID is set */}
-        {GA4_ID ? (
+        {/* GA4 — fires only when NEXT_PUBLIC_GA4_ID is set AND we're not in
+            ₹1 test mode (NEXT_PUBLIC_PRICE_INR > 1). Preview / staging traffic
+            never reaches the production GA4 property. Same gate as the Meta
+            Pixel below. When gated off the gtag script never loads →
+            window.gtag stays undefined → lib/ga4.ts.trackGa4EventOnce()
+            returns early WITHOUT stamping any localStorage flag, so on the
+            next hit against a properly-configured env the event still fires. */}
+        {GA4_ID && pricing.client.trackingEnabled ? (
           <>
             <Script
               src={`https://www.googletagmanager.com/gtag/js?id=${GA4_ID}`}
