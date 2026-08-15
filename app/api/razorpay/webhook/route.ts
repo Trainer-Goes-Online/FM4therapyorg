@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import crypto from 'crypto';
 import { brand, pricing } from '@/lib/config';
 import { sendMetaCapiEvent, sha256 } from '@/lib/meta-capi';
+import { resolveAttribution } from '@/lib/attribution';
 
 // ─────────────────────────────────────────────────────────────────────
 // Razorpay webhook — server-to-server tracking authority.
@@ -141,12 +142,57 @@ export async function POST(req: NextRequest) {
   const customerType = cust.tp ?? '';
   const fullPhone    = `${dialCode}${phoneDigits}`;
 
-  const fbc = notes.fbc || undefined;
+  const rawFbc = notes.fbc || '';
   const fbp = notes.fbp || undefined;
   const clientIp = notes.ip || undefined;
   const clientUserAgent = notes.ua || undefined;
   const eventSourceUrl = notes.esu || CANONICAL_CHECKOUT_URL;
-  const fbclid = notes.clid ?? '';
+
+  // ─── L6 — REPAIR pass over notes. Re-runs the same resolveAttribution
+  // chain used by create-order so pre-existing orders (created before the
+  // L1–L5 fixes shipped) that landed with blank utm.* or missing fbclid
+  // get recovered from notes.rf (referrer) and notes.fbc (parsed _fbc).
+  // For orders created AFTER the L1–L5 fixes, this is idempotent — the
+  // resolver just re-picks the same values already stored.
+  //
+  // Precedence in the webhook context (no client cookie is available;
+  // Razorpay is the caller): body (= the notes we stored) → referrer
+  // → _fbc. Never referrer for fbclid (truncated at 256).
+  const bodyAttrFromNotes = {
+    source:   utm.s ?? '',
+    medium:   utm.m ?? '',
+    campaign: utm.c ?? '',
+    content:  utm.n ?? '',
+    term:     utm.t ?? '',
+    fbclid:   notes.clid ?? '',
+    ts:       Number(notes.ts) || 0,
+  };
+  const resolvedAttr = resolveAttribution({
+    bodyAttr:   bodyAttrFromNotes,
+    referrer:   notes.rf ?? '',
+    landingUrl: notes.lu ?? '',
+    fbc:        rawFbc,
+  });
+
+  if (resolvedAttr.utmSource === 'none') {
+    // Loud error so ops sees the miss the moment it happens — a real ad
+    // sale with no attribution is exactly the failure mode we shipped
+    // L1–L5 to eliminate; if L6 also can't recover it, something is
+    // genuinely wrong (blocked ad-networks / cookie stripped / direct nav).
+    console.error(
+      '[webhook] ATTRIBUTION MISSING',
+      `paymentId=${paymentId}`,
+      `provenance=${resolvedAttr.provenance}`,
+    );
+  }
+
+  // Reconstruct _fbc when the notes carried a bare fbclid but no fbc
+  // (e.g. an older order created before the fix wrote both keys). Same
+  // template Meta itself uses: fb.<subdomainIndex>.<clickTsMs>.<fbclid>.
+  const fbc = rawFbc
+    || (resolvedAttr.fbclid ? `fb.1.${resolvedAttr.fbclidTs}.${resolvedAttr.fbclid}` : '')
+    || undefined;
+  const fbclid = resolvedAttr.fbclid;
 
   // Server-derived values (identical shape to the verify-payment payload).
   const rawAmount = typeof payment.amount === 'string'
@@ -186,11 +232,14 @@ export async function POST(req: NextRequest) {
     payment_date:      paymentDate.toLocaleDateString('en-IN', { timeZone: brand.paymentTimezone }),
     payment_time:      paymentDate.toLocaleTimeString('en-IN', { timeZone: brand.paymentTimezone }),
     payment_timestamp: paymentDate.toISOString(),
-    utm_source:        utm.s ?? '',
-    utm_medium:        utm.m ?? '',
-    utm_campaign:      utm.c ?? '',
-    utm_content:       utm.n ?? '',
-    utm_term:          utm.t ?? '',
+    // ─ L6 uses the RESOLVED values, not raw notes.utm.*, so pre-existing
+    // orders with blank utm blobs get recovered from notes.rf (referrer)
+    // and post-fix orders stay identical (idempotent).
+    utm_source:        resolvedAttr.utm.source,
+    utm_medium:        resolvedAttr.utm.medium,
+    utm_campaign:      resolvedAttr.utm.campaign,
+    utm_content:       resolvedAttr.utm.content,
+    utm_term:          resolvedAttr.utm.term,
     // --- added for the downstream CRM (Sheet cols A–W) ---
     lead_id:           paymentId,
     created_at:        paymentDate.toISOString(),
