@@ -1639,6 +1639,10 @@ strong { color: var(--c-ink); }
   color: #fff;
   font-weight: 600;
   padding: 0.25rem 0.4rem;
+  /* Each label stays on one line. When the row runs out of width the flex container
+     wraps the WHOLE link to the next line instead of splitting it mid-phrase
+     ("Refund & Cancellation" / "Policy"), which is what we're avoiding here. */
+  white-space: nowrap;
 }
 .footer__links a:hover { color: var(--c-primary-l); }
 .footer__links span { color: rgba(255,255,255,0.35); }
@@ -1945,6 +1949,20 @@ body:has(.sticky-cta) { padding-bottom: 64px; }
   /* Footer */
   .footer__title       { letter-spacing: 0.12em; font-size: 0.85rem; }
   .footer__disclaimer  { font-size: 0.85rem; }
+  /* Tighten the legal row so "Refund & Cancellation Policy" clears one line on
+     phones. At 0.86rem it needs ~205px, which fits inside a 320px viewport. */
+  .footer__links       { gap: 0.3rem 0.7rem; font-size: 0.86rem; }
+  .footer__links a     { padding: 0.25rem 0.15rem; }
+}
+
+/* Measured: with the "·" separators shown the three legal links fit on one row down
+   to 450px; without them they fit down to 430px. So below 450px we drop the dots —
+   that buys back the width for a single row on big phones, and on the narrower
+   phones that do wrap it stops a line from ending on a dangling dot. The wider row
+   gap keeps the links readable as separate items once the dots are gone. */
+@media (max-width: 449px) {
+  .footer__links span { display: none; }
+  .footer__links      { gap: 0.25rem 0.95rem; }
 }
 
 @media (max-width: 420px) {

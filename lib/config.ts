@@ -94,6 +94,8 @@ export const brand = {
   funnelSlug: 'fm4-workshop',
   utmSessionKey: 'fm4_utm',
   email: 'sourobhkulkorni@gmail.com',
+  /** Support contact shown on the legal pages. E.164 format — used for the tel: link too. */
+  phone: '+919667953335',
   ownerLegalName: 'Fitness Master',
   address:
     'Plot no. 19, Kanchanganga Society Rd, opposite kalyan bhel, part 2, Bibwewadi, Pune, Maharashtra 411037',

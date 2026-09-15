@@ -19,7 +19,7 @@ export default function Footer() {
             <span aria-hidden="true">·</span>
             <a href="/terms-conditions">Terms of Use</a>
             <span aria-hidden="true">·</span>
-            <a href="/refund-policy">Refund Policy</a>
+            <a href="/refund-policy">Refund &amp; Cancellation Policy</a>
           </nav>
         </div>
       </footer>

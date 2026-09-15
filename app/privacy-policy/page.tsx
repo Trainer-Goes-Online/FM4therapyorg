@@ -53,7 +53,8 @@ export default function PrivacyPolicyPage() {
             <p>
               <strong>Fitness Master Academy</strong><br />
               Address: {brand.address}<br />
-              Email: <a href={`mailto:${brand.email}`}>{brand.email}</a>
+              Email: <a href={`mailto:${brand.email}`}>{brand.email}</a><br />
+              Contact: <a href={`tel:${brand.phone}`}>{brand.phone}</a>
             </p>
 
             <p className="legal__sig">
