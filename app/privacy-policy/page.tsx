@@ -51,7 +51,7 @@ export default function PrivacyPolicyPage() {
 
             <h2>9. Contact Us</h2>
             <p>
-              <strong>Fitness Master Academy</strong><br />
+              <strong>Fitness Master FM4 Health solutions private limited </strong><br />
               Address: {brand.address}<br />
               Email: <a href={`mailto:${brand.email}`}>{brand.email}</a><br />
               Contact: <a href={`tel:${brand.phone}`}>{brand.phone}</a>

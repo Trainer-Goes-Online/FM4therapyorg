@@ -96,9 +96,9 @@ export const brand = {
   email: 'sourobhkulkorni@gmail.com',
   /** Support contact shown on the legal pages. E.164 format — used for the tel: link too. */
   phone: '+919667953335',
-  ownerLegalName: 'Fitness Master',
+  ownerLegalName: 'Fitness Master FM4 Health solutions private limited',
   address:
-    'Plot no. 19, Kanchanganga Society Rd, opposite kalyan bhel, part 2, Bibwewadi, Pune, Maharashtra 411037',
+    'Wing B, Flat 1704, 17th floor Ganga Ishanya Dhankawdi Pune 411043',
   trustBadges: ['🔒 Razorpay Secured', 'SSL Encrypted', '100% Money Back'],
   valueBullets: [
     '2-Day Live Workshop with Sourobh Kulkorni',

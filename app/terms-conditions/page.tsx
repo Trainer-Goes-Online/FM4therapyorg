@@ -46,7 +46,7 @@ export default function TermsPage() {
 
             <h2>11. Contact Information</h2>
             <p>
-              <strong>Fitness Master Academy</strong><br />
+              <strong>Fitness Master FM4 Health solutions private limited </strong><br />
               Address: {brand.address}<br />
               Email: <a href={`mailto:${brand.email}`}>{brand.email}</a>
             </p>

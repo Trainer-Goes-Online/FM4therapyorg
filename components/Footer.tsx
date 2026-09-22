@@ -6,6 +6,7 @@ export default function Footer() {
     <>
       <footer className="footer">
         <div className="container">
+          <div className="footer__title">Fitness Master FM4 Health Solutions Private Limited </div>
           <div className="footer__title">FM4 THERAPY · FM4 PAIN-FREE METHOD™</div>
           <p className="footer__disclaimer">
             All content and FM4 Therapy programs are intended for educational purposes only and do not guarantee specific results.
