@@ -12,7 +12,7 @@ export default function RefundPage() {
           <article className="legal__card">
             <h1>Refund Policy &amp; Cancellation</h1>
             <p className="legal__lead">At Fitness Master Academy, we are committed to ensuring your satisfaction with our Ultimate Back Pain Relief System.</p>
-            <p>While we do not provide refunds, we are dedicated to supporting you every step of the way to ensure you achieve the best possible results.</p>
+            {/* <p>While we do not provide refunds, we are dedicated to supporting you every step of the way to ensure you achieve the best possible results.</p> */}
 
             <h2>Satisfaction Guarantee</h2>
             <p>This system has helped more than <strong>7,000 people</strong> just like you. If you follow this system as it&apos;s designed, we&apos;re confident you&apos;ll see great results.</p>
