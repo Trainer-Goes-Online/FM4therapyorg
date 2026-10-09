@@ -1,6 +1,8 @@
 import Footer from '@/components/Footer';
 import LandingClient, { REVIEWS_DATA } from '@/components/LandingClient';
 import CheckoutLink from '@/components/CheckoutLink';
+import BonusSection from '@/components/BonusSection';
+import BonusRecap from '@/components/BonusRecap';
 import SeatCounter from '@/components/SeatCounter';
 import { brand, pricing, schedule } from '@/lib/config';
 
@@ -241,6 +243,17 @@ export default function LandingPageHi() {
         </div>
       </section>
 
+      {/* BONUSES */}
+      <BonusSection
+        lang="hi"
+        cta={
+          <>
+            <CheckoutLink className="btn btn--cta btn--lg">{CTA}</CheckoutLink>
+            <span className="guarantee">100% मनी बैक गारंटी</span>
+          </>
+        }
+      />
+
       {/* AUDIENCE */}
       <section className="section section--soft">
         <div className="container">
@@ -343,6 +356,17 @@ export default function LandingPageHi() {
           </div>
         </div>
       </section>
+
+      {/* RECAP — everything included, above the footer */}
+      <BonusRecap
+        lang="hi"
+        cta={
+          <>
+            <CheckoutLink className="btn btn--cta btn--lg">{CTA}</CheckoutLink>
+            <span className="guarantee">100% मनी बैक गारंटी</span>
+          </>
+        }
+      />
 
       <Footer />
 

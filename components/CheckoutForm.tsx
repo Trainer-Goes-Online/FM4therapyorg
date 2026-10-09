@@ -6,6 +6,7 @@ import { isValidPhoneNumber } from 'libphonenumber-js';
 import { COUNTRIES, type Country } from '@/lib/countries';
 import { captureLandingParams, restoreLandingParams, restoreUtm, type UtmData } from '@/lib/utm';
 import { brand, pricing, schedule, addons, addonsTotalInr, thankYouPathFor, type Addon, type AddonId } from '@/lib/config';
+import { BONUSES, bonusesTotalInr } from '@/lib/bonuses';
 import { setMetaAdvancedMatching, sha256Hex } from '@/lib/analytics';
 import { trackGa4EventOnce } from '@/lib/ga4';
 
@@ -354,6 +355,25 @@ function SummaryBody({ finalInr, discountInr, selectedAddons }: {
         </div>
       )}
       <div className="summary__row summary__row--total"><span>Total</span><span key={finalInr} className="price-bump">₹{formatInr(finalInr)}.00</span></div>
+
+      <div className="summary-bonuses">
+        <div className="summary-bonuses__head">
+          <span aria-hidden="true">🎁</span> {BONUSES.length} Free Bonuses Included
+        </div>
+        <ul className="summary-bonuses__list">
+          {BONUSES.map(b => (
+            <li key={b.n}>
+              <span className="summary-bonuses__tick" aria-hidden="true">✓</span>
+              <span className="summary-bonuses__name">{b.title.en}</span>
+              <s className="summary-bonuses__value">₹{formatInr(b.value)}</s>
+            </li>
+          ))}
+        </ul>
+        <div className="summary-bonuses__total">
+          <span>Total bonus value</span>
+          <span><s>₹{formatInr(bonusesTotalInr)}</s> <strong>FREE</strong></span>
+        </div>
+      </div>
 
       <div className="schedule-card">
         <div className="schedule-card__head">Workshop Schedule</div>
