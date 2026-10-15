@@ -2,6 +2,10 @@
 
 import { useEffect } from 'react';
 import { captureUtm } from '@/lib/utm';
+import { trackVideoMilestone, type VideoMilestone } from '@/lib/video-tracking';
+
+const HERO_VIMEO_ID = 1236102509;
+const HERO_VIMEO_URL = `https://player.vimeo.com/video/${HERO_VIMEO_ID}`;
 
 const REVIEWS = [
   { name: 'Gajanan Pandit', time: '2 weeks ago', text: "I'm vandana pandit, 72, and have suffered chronic knee pain for 12 years. After trying various treatments, sourabh's fm~4 therapy gave me 70% relief in just one session—a true miracle!" },
@@ -71,23 +75,132 @@ export default function LandingClient() {
       slides[sliderIdx].classList.add('is-active');
     }, 3500) : null;
 
-    // 5a. Hero VSL — inline workshop preview (replaces the poster with the CDN MP4)
-    const HERO_VIDEO_URL = 'https://tgox-production-bucket.nyc3.cdn.digitaloceanspaces.com/client_funnel_videos/Sourobh%20Ji/vsl_saurabhji_(1).mp4%20(1080p).mp4';
+    // 5a. Hero VSL — Vimeo player (official @vimeo/player SDK).
+    //
+    //   Speed: the player is pre-built *behind* the poster as soon as the page
+    //   is idle (or instantly on hover / touch / focus of the video), so by the
+    //   time the visitor clicks, the SDK, player and Vimeo connection are
+    //   already warm — a click just reveals it and starts playback.
+    //
+    //   Sound: no `autoplay` param (Vimeo's autoplay falls back to MUTED when a
+    //   browser refuses sound). Playback is started from the visitor's click
+    //   with volume 1 / unmuted. If a browser (mainly iOS Safari) still refuses
+    //   sound from a click outside the iframe, we never fall back to muted —
+    //   Vimeo's own play button is visible and one tap plays with sound.
+    //
+    //   Tracking: Vimeo's own stats stay on (dnt: false); play / 25 / 50 / 75 /
+    //   complete also go to GA4, Clarity and Meta via lib/video-tracking.ts.
     const vslContainer = document.getElementById('vslContainer');
     let vslOff: (() => void) | null = null;
+    let heroPlayer: { destroy: () => Promise<void> } | null = null;
+    let unmounted = false;
     if (vslContainer) {
-      const playHero = () => {
-        vslContainer.innerHTML = `<video src="${HERO_VIDEO_URL}" controls autoplay playsinline></video>`;
+      type VimeoPlayer = import('@vimeo/player').default;
+      let warm: Promise<VimeoPlayer | null> | null = null;
+      let started = false;
+
+      // Build the player once, hidden behind the poster (no playback yet).
+      const warmUp = () => {
+        if (warm) return warm;
+        warm = (async () => {
+          try {
+            const { default: Player } = await import('@vimeo/player');
+            if (unmounted) return null;
+            vslContainer.classList.add('is-preloaded');
+            const player = new Player(vslContainer, {
+              id: HERO_VIMEO_ID,
+              autoplay: false,
+              muted: false,
+              playsinline: true,
+              dnt: false,
+              title: false,
+              byline: false,
+              portrait: false,
+            });
+            heroPlayer = player;
+
+            const video = { title: 'FM4 Workshop Preview (Hero VSL)', url: HERO_VIMEO_URL, provider: 'vimeo' };
+            const fired = new Set<string>();
+            const once = (m: VideoMilestone) => {
+              if (fired.has(String(m))) return;
+              fired.add(String(m));
+              trackVideoMilestone(m, video);
+            };
+            player.on('play', () => {
+              once('start');
+              // Belt and braces: never let it run muted.
+              player.getMuted().then(m => { if (m) player.setMuted(false).catch(() => {}); }).catch(() => {});
+            });
+            player.on('timeupdate', ({ percent }: { percent: number }) => {
+              for (const m of [25, 50, 75] as const) if (percent * 100 >= m) once(m);
+            });
+            player.on('ended', () => once('complete'));
+            return player;
+          } catch (err) {
+            console.warn('[hero VSL] Vimeo player failed to load:', err);
+            warm = null;
+            vslContainer.classList.remove('is-preloaded');
+            return null;
+          }
+        })();
+        return warm;
       };
+
+      const reveal = () => {
+        vslContainer.querySelectorAll('.hero__vsl-poster-img, .hero__vsl-poster').forEach(n => n.remove());
+        vslContainer.classList.remove('is-preloaded', 'is-loading');
+      };
+
+      const playHero = async () => {
+        if (started) return;
+        started = true;
+        vslContainer.classList.add('is-loading');
+        const player = await warmUp();
+        if (unmounted) return;
+        if (!player) { started = false; vslContainer.classList.remove('is-loading'); return; }
+        // Wait briefly for Vimeo to be ready (usually already is, thanks to
+        // warm-up); never longer than 4s so nobody is stuck on the poster.
+        const ready = await Promise.race([
+          player.ready().then(() => true).catch(() => false),
+          new Promise<boolean>(res => setTimeout(() => res(false), 4000)),
+        ]);
+        if (unmounted) return;
+        reveal();
+        if (!ready) return; // Vimeo's own play button is visible — one tap plays with sound.
+        try {
+          await player.setVolume(1);
+          await player.setMuted(false);
+          await player.play();
+        } catch {
+          // Browser refused sound from an outside click (iOS Safari). Leave it
+          // paused and unmuted — Vimeo's play button starts it with sound.
+        }
+      };
+
       const onKey = (e: Event) => {
         const k = (e as KeyboardEvent).key;
-        if (k === 'Enter' || k === ' ') { e.preventDefault(); playHero(); }
+        if (k === 'Enter' || k === ' ') { e.preventDefault(); void playHero(); }
       };
+      const onIntent = () => { void warmUp(); };
+
+      // Warm up early: on any sign of intent, or once the page is idle.
+      vslContainer.addEventListener('pointerenter', onIntent, { once: true });
+      vslContainer.addEventListener('touchstart', onIntent, { once: true, passive: true });
+      vslContainer.addEventListener('focusin', onIntent, { once: true });
+      const ric = (window as unknown as { requestIdleCallback?: (cb: () => void, o?: { timeout: number }) => number }).requestIdleCallback;
+      const idleWarm = () => { if (ric) ric(onIntent, { timeout: 2500 }); else setTimeout(onIntent, 1500); };
+      if (document.readyState === 'complete') idleWarm();
+      else window.addEventListener('load', idleWarm, { once: true });
+
       vslContainer.addEventListener('click', playHero);
       vslContainer.addEventListener('keydown', onKey);
       vslOff = () => {
         vslContainer.removeEventListener('click', playHero);
         vslContainer.removeEventListener('keydown', onKey);
+        vslContainer.removeEventListener('pointerenter', onIntent);
+        vslContainer.removeEventListener('touchstart', onIntent);
+        vslContainer.removeEventListener('focusin', onIntent);
+        window.removeEventListener('load', idleWarm);
       };
     }
 
@@ -191,6 +304,8 @@ export default function LandingClient() {
       if (soundBtn) soundBtn.removeEventListener('click', soundClick);
       tileHandlers.forEach(off => off());
       if (vslOff) vslOff();
+      unmounted = true;
+      heroPlayer?.destroy().catch(() => {});
     };
   }, []);
 

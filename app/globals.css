@@ -648,8 +648,21 @@ strong { color: var(--c-ink); }
   height: 100%;
   border: 0;
   position: absolute; inset: 0;
+  z-index: 3;               /* above the poster while the Vimeo player loads */
   object-fit: contain;
   background: #000;
+}
+/* While the Vimeo SDK loads, keep the poster but show it's working */
+.hero__vsl.is-loading { cursor: progress; }
+/* Pre-built player sits invisibly behind the poster until the click */
+.hero__vsl.is-preloaded iframe,
+.hero__vsl.is-loading iframe { opacity: 0; pointer-events: none; }
+/* The poster image stays in charge of the box size until it's revealed */
+.hero__vsl.is-preloaded { aspect-ratio: auto; }
+.hero__vsl.is-loading .hero__vsl-play { animation: vslLoadingPulse 0.9s ease-in-out infinite; }
+@keyframes vslLoadingPulse {
+  0%, 100% { opacity: 1; }
+  50%      { opacity: 0.55; }
 }
 .hero__vsl-poster {
   position: absolute; inset: 0;

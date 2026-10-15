@@ -9,11 +9,12 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@vimeo/player": "^2.30.4",
+    "libphonenumber-js": "^1.11.14",
     "next": "^15.0.3",
-    "react": "^19.0.0-rc-66855b96-20241106",
-    "react-dom": "^19.0.0-rc-66855b96-20241106",
     "razorpay": "^2.9.4",
-    "libphonenumber-js": "^1.11.14"
+    "react": "^19.0.0-rc-66855b96-20241106",
+    "react-dom": "^19.0.0-rc-66855b96-20241106"
   },
   "devDependencies": {
     "@types/node": "^22.9.0",

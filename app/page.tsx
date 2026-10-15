@@ -1,5 +1,6 @@
 import Footer from '@/components/Footer';
 import LandingClient, { REVIEWS_DATA } from '@/components/LandingClient';
+import VimeoPreconnect from '@/components/VimeoPreconnect';
 import CheckoutLink from '@/components/CheckoutLink';
 import BonusSection from '@/components/BonusSection';
 import BonusRecap from '@/components/BonusRecap';
@@ -380,6 +381,7 @@ export default function LandingPage() {
         </div>
       </aside>
 
+      <VimeoPreconnect />
       <LandingClient />
       <SeatCounter />
     </>
